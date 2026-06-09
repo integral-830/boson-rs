@@ -1,6 +1,6 @@
-use bytes::{Buf, Bytes};
+use bytes::{Buf, BufMut, Bytes};
 use thiserror::Error;
-use tokio_util::codec::Decoder;
+use tokio_util::codec::{Decoder, Encoder};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RespValue {
@@ -202,6 +202,69 @@ impl Decoder for RespCodec {
 
         buf.advance(pos);
         Ok(Some(value))
+    }
+}
+
+impl Encoder<RespValue> for RespCodec {
+    type Error = RespError;
+
+    fn encode(&mut self, item: RespValue, dst: &mut bytes::BytesMut) -> Result<(), Self::Error> {
+        dst.reserve(estimate_size(&item));
+
+        match item {
+            RespValue::SimpleString(bytes) => {
+                dst.put_u8(b'+');
+                dst.put_slice(&bytes);
+                dst.put_slice(b"\r\n");
+            }
+            RespValue::BulkString(bytes) => {
+                dst.put_u8(b'$');
+
+                let mut buf = itoa::Buffer::new();
+                let str = buf.format(bytes.len());
+
+                dst.put_slice(str.as_bytes());
+                dst.put_slice(b"\r\n");
+                dst.put_slice(&bytes);
+                dst.put_slice(b"\r\n");
+            }
+            RespValue::Integer(value) => {
+                dst.put_u8(b':');
+                let mut buf = itoa::Buffer::new();
+                let str = buf.format(value);
+                dst.put_slice(str.as_bytes());
+                dst.put_slice(b"\r\n");
+            }
+            RespValue::Array(resp_values) => {
+                dst.put_u8(b'*');
+                let mut buf = itoa::Buffer::new();
+                let str = buf.format(resp_values.len());
+                dst.put_slice(str.as_bytes());
+                dst.put_slice(b"\r\n");
+                for item in resp_values {
+                    self.encode(item, dst)?;
+                }
+            }
+            RespValue::Error(bytes) => {
+                dst.put_u8(b'-');
+                dst.put_slice(&bytes);
+                dst.put_slice(b"\r\n");
+            }
+            RespValue::Null => {
+                dst.put_slice(b"$-1\r\n");
+            }
+        }
+        Ok(())
+    }
+}
+
+fn estimate_size(value: &RespValue) -> usize {
+    match value {
+        RespValue::SimpleString(bytes) | RespValue::Error(bytes) => 3 + bytes.len(),
+        RespValue::BulkString(bytes) => 20 + bytes.len(),
+        RespValue::Integer(_) => 32,
+        RespValue::Array(resp_values) => 10 + resp_values.iter().map(estimate_size).sum::<usize>(),
+        RespValue::Null => 8,
     }
 }
 
@@ -414,5 +477,61 @@ mod tests {
                 RespValue::Integer(42),
             ]))
         );
+    }
+
+    fn roundtrip(v: RespValue) {
+        let mut codec = RespCodec;
+        let mut buf = BytesMut::new();
+
+        codec.encode(v.clone(), &mut buf).unwrap();
+
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+
+        assert_eq!(v, decoded);
+
+        assert!(buf.is_empty(), "decoder did not consume all bytes");
+    }
+
+    #[test]
+    fn roundtrip_simple_string() {
+        roundtrip(RespValue::SimpleString(Bytes::from("OK")));
+    }
+
+    #[test]
+    fn roundtrip_error() {
+        roundtrip(RespValue::Error(Bytes::from("ERR unknown command")));
+    }
+    #[test]
+    fn roundtrip_integer_positive() {
+        roundtrip(RespValue::Integer(42));
+    }
+    #[test]
+    fn roundtrip_integer_zero() {
+        roundtrip(RespValue::Integer(0));
+    }
+    #[test]
+    fn roundtrip_bulk_string() {
+        roundtrip(RespValue::BulkString(Bytes::from("hello")));
+    }
+    #[test]
+    fn roundtrip_bulk_string_binary() {
+        roundtrip(RespValue::BulkString(Bytes::from_static(
+            b"\x00\x01\x02\xff",
+        )));
+    }
+    #[test]
+    fn roundtrip_null() {
+        roundtrip(RespValue::Null);
+    }
+    #[test]
+    fn roundtrip_nested_array() {
+        roundtrip(RespValue::Array(vec![
+            RespValue::SimpleString(Bytes::from("outer")),
+            RespValue::Array(vec![
+                RespValue::Integer(1),
+                RespValue::Integer(2),
+                RespValue::BulkString(Bytes::from("inner")),
+            ]),
+        ]));
     }
 }

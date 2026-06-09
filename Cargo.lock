@@ -41,6 +41,7 @@ version = "0.1.0"
 dependencies = [
  "bytes",
  "dashmap",
+ "itoa",
  "prometheus",
  "proptest",
  "thiserror 2.0.18",
