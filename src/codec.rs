@@ -2,7 +2,7 @@ use bytes::{Buf, BufMut, Bytes};
 use thiserror::Error;
 use tokio_util::codec::{Decoder, Encoder};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RespValue {
     SimpleString(Bytes),
     BulkString(Bytes),
