@@ -501,28 +501,34 @@ mod tests {
     fn roundtrip_error() {
         roundtrip(RespValue::Error(Bytes::from("ERR unknown command")));
     }
+
     #[test]
     fn roundtrip_integer_positive() {
         roundtrip(RespValue::Integer(42));
     }
+
     #[test]
     fn roundtrip_integer_zero() {
         roundtrip(RespValue::Integer(0));
     }
+
     #[test]
     fn roundtrip_bulk_string() {
         roundtrip(RespValue::BulkString(Bytes::from("hello")));
     }
+
     #[test]
     fn roundtrip_bulk_string_binary() {
         roundtrip(RespValue::BulkString(Bytes::from_static(
             b"\x00\x01\x02\xff",
         )));
     }
+
     #[test]
     fn roundtrip_null() {
         roundtrip(RespValue::Null);
     }
+
     #[test]
     fn roundtrip_nested_array() {
         roundtrip(RespValue::Array(vec![
@@ -533,5 +539,16 @@ mod tests {
                 RespValue::BulkString(Bytes::from("inner")),
             ]),
         ]));
+    }
+
+    #[test]
+    fn bulk_string_with_crlf_payload() {
+        let mut codec = RespCodec;
+
+        let mut buf = BytesMut::from(b"$2\r\n\r\n\r\n".as_slice());
+
+        let value = codec.decode(&mut buf).unwrap().unwrap();
+
+        assert_eq!(value, RespValue::BulkString(Bytes::from_static(b"\r\n")));
     }
 }
