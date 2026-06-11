@@ -1,40 +1,21 @@
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 use tokio::net::TcpListener;
-
 use tracing::info;
 
-use boson_rs::{handler::handle, store::Store};
+use boson_rs::{server::run_server, store::Store};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
 
-    let port = env::var("PORT")
-        .ok()
-        .and_then(|p| p.parse::<u16>().ok())
-        .unwrap_or(6380);
+    let listener = TcpListener::bind("0.0.0.0:6380").await?;
 
-    let addr = format!("0.0.0.0:{port}");
-
-    let listener = TcpListener::bind(&addr).await?;
+    info!("listening on 0.0.0.0:6380");
 
     let store = Arc::new(Store::new());
 
-    info!("listening on {}", addr);
+    run_server(listener, store).await?;
 
-    loop {
-        let (stream, addr) = listener.accept().await?;
-
-        info!(
-            addr = ?addr,
-            "new connection"
-        );
-
-        let store = Arc::clone(&store);
-
-        tokio::spawn(async move {
-            handle(stream, store).await;
-        });
-    }
+    Ok(())
 }

@@ -13,6 +13,9 @@ use crate::{
     store::Store,
 };
 
+#[tracing::instrument(skip(stream,store),
+    fields(peer_addr = ?stream.peer_addr().ok())
+)]
 pub async fn handle(stream: TcpStream, store: Arc<Store>) {
     let mut framed = Framed::new(stream, RespCodec);
 
@@ -23,7 +26,7 @@ pub async fn handle(stream: TcpStream, store: Arc<Store>) {
                 if let Err(err) = framed.send(response).await {
                     error!("Send error: {err}");
                     break;
-                };
+                }
             }
             Err(err) => {
                 error!("Decode error: {err}");
@@ -33,6 +36,7 @@ pub async fn handle(stream: TcpStream, store: Arc<Store>) {
     }
 }
 
+#[tracing::instrument(skip(store, frame))]
 pub async fn dispatch(store: &Arc<Store>, frame: RespValue) -> RespValue {
     let args = match frame {
         RespValue::Array(resp_values) => resp_values,

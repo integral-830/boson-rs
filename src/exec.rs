@@ -4,6 +4,10 @@ use crate::cmd::Command;
 use crate::codec::RespValue;
 use crate::store::Store;
 
+#[tracing::instrument(
+    skip(store),
+    fields(command = ?cmd)
+)]
 pub fn execute(store: &Store, cmd: Command) -> RespValue {
     match cmd {
         Command::Ping(msg) => match msg {
@@ -27,8 +31,7 @@ pub fn execute(store: &Store, cmd: Command) -> RespValue {
         },
         Command::Expire(key, secs) => RespValue::Integer(store.expire(&key, secs)),
         Command::Ttl(key) => RespValue::Integer(store.ttl(&key)),
-        Command::CommandDocs => RespValue::Array(vec![]),
-        Command::ConfigGet => RespValue::Array(vec![]),
+        Command::CommandDocs | Command::ConfigGet => RespValue::Array(vec![]),
     }
 }
 
