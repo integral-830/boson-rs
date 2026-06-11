@@ -108,7 +108,6 @@ fn decode_bulk_string_at(buf: &[u8], pos: &mut usize) -> Result<Option<RespValue
     if len < -1 {
         return Err(RespError::InvalidLength);
     }
-
     let payload_start = header_end + 2;
 
     let payload_end = payload_start + len as usize;
@@ -147,7 +146,6 @@ fn decode_array_at(buf: &[u8], pos: &mut usize) -> Result<Option<RespValue>, Res
     if len < -1 {
         return Err(RespError::InvalidLength);
     }
-
     *pos = header_end + 2;
 
     let mut resp_values_array = Vec::with_capacity(len as usize);
@@ -166,19 +164,48 @@ fn decode_array_at(buf: &[u8], pos: &mut usize) -> Result<Option<RespValue>, Res
     Ok(Some(RespValue::Array(resp_values_array)))
 }
 
+fn skip_empty_frames(buf: &[u8], pos: &mut usize) {
+    while *pos + 1 < buf.len() && buf[*pos] == b'\r' && buf[*pos + 1] == b'\n' {
+        *pos += 2;
+    }
+}
+
 fn decode_at(buf: &[u8], pos: &mut usize) -> Result<Option<RespValue>, RespError> {
+    skip_empty_frames(buf, pos);
     if *pos >= buf.len() {
         return Ok(None);
     }
-
     match buf[*pos] {
         b'+' => decode_simple_string_at(buf, pos),
         b'-' => decode_error_at(buf, pos),
         b':' => decode_integer_at(buf, pos),
         b'$' => decode_bulk_string_at(buf, pos),
         b'*' => decode_array_at(buf, pos),
+        b'A'..=b'Z' | b'a'..=b'z' => decode_inline_at(buf, pos),
         other => Err(RespError::InvalidPrefix(other)),
     }
+}
+
+fn decode_inline_at(buf: &[u8], pos: &mut usize) -> Result<Option<RespValue>, RespError> {
+    let start = *pos;
+
+    let rel = match get_crlf_from(&buf[start..], 0) {
+        Some(v) => v,
+        None => return Ok(None),
+    };
+
+    let end = start + rel;
+
+    let line = &buf[start..end];
+
+    let values = line
+        .split(|b| *b == b' ')
+        .map(|part| RespValue::BulkString(Bytes::copy_from_slice(part)))
+        .collect();
+
+    *pos = end + 2;
+
+    Ok(Some(RespValue::Array(values)))
 }
 
 pub struct RespCodec;
@@ -192,14 +219,11 @@ impl Decoder for RespCodec {
         if buf.is_empty() {
             return Ok(None);
         }
-
         let mut pos = 0;
-
         let value = match decode_at(&buf[..], &mut pos)? {
             Some(val) => val,
             None => return Ok(None),
         };
-
         buf.advance(pos);
         Ok(Some(value))
     }

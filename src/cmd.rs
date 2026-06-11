@@ -19,6 +19,7 @@ pub enum Command {
     Expire(Bytes, u64),
     Ttl(Bytes),
     CommandDocs,
+    ConfigGet,
 }
 
 #[derive(Debug, Error)]
@@ -209,12 +210,9 @@ pub fn parse_command(args: Vec<RespValue>) -> Result<Command, CommandError> {
             )?))
         }
         b"COMMAND" => Ok(Command::CommandDocs),
+        b"CONFIG" => Ok(Command::ConfigGet),
         _ => Err(CommandError::UnknownCommand(cmd_bytes)),
     }
-}
-
-fn bulk(s: &str) -> RespValue {
-    RespValue::BulkString(Bytes::from(s.to_owned()))
 }
 
 #[cfg(test)]
@@ -222,7 +220,12 @@ mod tests {
 
     use bytes::Bytes;
 
-    use crate::cmd::{bulk, parse_command, Command, CommandError};
+    use crate::cmd::{parse_command, Command, CommandError};
+    use crate::codec::RespValue;
+
+    fn bulk(s: &str) -> RespValue {
+        RespValue::BulkString(Bytes::from(s.to_owned()))
+    }
 
     #[test]
     fn parse_ping() {
