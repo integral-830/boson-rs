@@ -33,7 +33,7 @@ impl Store {
         if entry.is_expired() {
             drop(entry);
             self.map.remove(key);
-            return None;
+            None
         } else {
             Some(entry.value.clone())
         }
@@ -115,6 +115,12 @@ impl Store {
         }
 
         expires_at.duration_since(now).as_secs() as i64
+    }
+}
+
+impl Default for Store {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
