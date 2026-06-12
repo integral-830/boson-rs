@@ -3,7 +3,9 @@ use std::sync::Arc;
 use bytes::Bytes;
 use futures::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
+use tokio::sync::OwnedSemaphorePermit;
 use tokio_util::codec::Framed;
+use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
 
 use crate::exec::execute;
@@ -13,24 +15,50 @@ use crate::{
     store::Store,
 };
 
-#[tracing::instrument(skip(stream,store),
-    fields(peer_addr = ?stream.peer_addr().ok())
-)]
-pub async fn handle(stream: TcpStream, store: Arc<Store>) {
+#[tracing::instrument(skip(stream, store, _permit, shutdown))]
+pub async fn handle(
+    stream: TcpStream,
+    store: Arc<Store>,
+    _permit: OwnedSemaphorePermit,
+    shutdown: CancellationToken,
+) {
     let mut framed = Framed::new(stream, RespCodec);
+    loop {
+        tokio::select! {
+            biased;
 
-    while let Some(frame) = framed.next().await {
-        match frame {
-            Ok(resp_value) => {
-                let response = dispatch(&store, resp_value).await;
-                if let Err(err) = framed.send(response).await {
-                    error!("Send error: {err}");
-                    break;
-                }
-            }
-            Err(err) => {
-                error!("Decode error: {err}");
+            _ = shutdown.cancelled() => {
+                tracing::info!("shutdown");
                 break;
+            }
+
+            result = framed.next() => {
+                match result {
+                    Some(Ok(resp_value)) => {
+                        let response =
+                            dispatch(
+                                &store,
+                                resp_value,
+                            )
+                            .await;
+
+                        if let Err(err) =
+                            framed.send(response).await
+                        {
+                            error!("{err}");
+                            break;
+                        }
+                    }
+
+                    Some(Err(err)) => {
+                        error!("{err}");
+                        break;
+                    }
+
+                    None => {
+                        break;
+                    }
+                }
             }
         }
     }

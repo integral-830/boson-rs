@@ -2,11 +2,12 @@ use std::{sync::Arc, time::Duration};
 
 use bytes::Bytes;
 use futures::{future::join_all, SinkExt, StreamExt};
+use tokio::sync::Semaphore;
 use tokio::{
     net::{TcpListener, TcpStream},
     task::JoinHandle,
 };
-use tokio_util::codec::Framed;
+use tokio_util::{codec::Framed, sync::CancellationToken};
 
 use boson_rs::{
     codec::{RespCodec, RespValue},
@@ -21,8 +22,13 @@ async fn start_server() -> (u16, JoinHandle<()>) {
 
     let store = Arc::new(Store::new());
 
+    let conn_semaphore = Arc::new(Semaphore::new(1000));
+    let shutdown = CancellationToken::new();
+
     let handle = tokio::spawn(async move {
-        run_server(listener, store).await.unwrap();
+        run_server(listener, store, conn_semaphore, shutdown.clone())
+            .await
+            .unwrap();
     });
 
     (port, handle)
