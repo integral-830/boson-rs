@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
     });
     #[cfg(unix)]
     {
-        use tokio::signal::unix::{signal, SignalKind};
+        use tokio::signal::unix::{SignalKind, signal};
 
         let shutdown_term = shutdown.clone();
 

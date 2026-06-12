@@ -2,6 +2,9 @@ use bytes::{Buf, BufMut, Bytes};
 use thiserror::Error;
 use tokio_util::codec::{Decoder, Encoder};
 
+pub const MAX_FRAME_SIZE: usize = 512 * 1024 * 1024;
+pub const MAX_ARRAY_LEN: usize = 1_000_000;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RespValue {
     SimpleString(Bytes),
@@ -31,6 +34,12 @@ pub enum RespError {
 
     #[error("incomplete frame")]
     Incomplete,
+
+    #[error("frame too large: {0}")]
+    FrameTooLarge(usize),
+
+    #[error("array too large: {0}")]
+    ArrayTooLarge(usize),
 }
 
 fn get_crlf_from(buf: &[u8], start: usize) -> Option<usize> {
@@ -108,11 +117,18 @@ fn decode_bulk_string_at(buf: &[u8], pos: &mut usize) -> Result<Option<RespValue
     if len < -1 {
         return Err(RespError::InvalidLength);
     }
+
+    if len as usize > MAX_FRAME_SIZE {
+        return Err(RespError::FrameTooLarge(len as usize));
+    }
+
     let payload_start = header_end + 2;
 
-    let payload_end = payload_start + len as usize;
+    let payload_end = payload_start
+        .checked_add(len as usize)
+        .ok_or(RespError::InvalidLength)?;
 
-    let total_consumed = payload_end + 2;
+    let total_consumed = payload_end.checked_add(2).ok_or(RespError::InvalidLength)?;
 
     if buf.len() < total_consumed {
         return Ok(None);
@@ -146,6 +162,11 @@ fn decode_array_at(buf: &[u8], pos: &mut usize) -> Result<Option<RespValue>, Res
     if len < -1 {
         return Err(RespError::InvalidLength);
     }
+
+    if len as usize > MAX_ARRAY_LEN {
+        return Err(RespError::ArrayTooLarge(len as usize));
+    }
+
     *pos = header_end + 2;
 
     let mut resp_values_array = Vec::with_capacity(len as usize);

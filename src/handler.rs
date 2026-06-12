@@ -15,7 +15,7 @@ use crate::{
     store::Store,
 };
 
-#[tracing::instrument(skip(stream, store, _permit, shutdown))]
+#[tracing::instrument(skip(stream, store))]
 pub async fn handle(
     stream: TcpStream,
     store: Arc<Store>,
@@ -49,9 +49,16 @@ pub async fn handle(
                             break;
                         }
                     }
-
                     Some(Err(err)) => {
-                        error!("{err}");
+                        let _ = framed
+                            .send(
+                                RespValue::Error(
+                                    Bytes::from(
+                                        err.to_string(),
+                                    ),
+                                ),
+                            )
+                            .await;
                         break;
                     }
 

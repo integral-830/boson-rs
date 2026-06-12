@@ -1,6 +1,7 @@
 use std::str;
 use std::time::{Duration, Instant};
 
+use ahash::RandomState;
 use bytes::Bytes;
 use dashmap::DashMap;
 
@@ -18,13 +19,13 @@ impl Entry {
 
 #[derive(Debug, Clone)]
 pub struct Store {
-    map: DashMap<Bytes, Entry>,
+    map: DashMap<Bytes, Entry, RandomState>,
 }
 
 impl Store {
     pub fn new() -> Self {
         Self {
-            map: DashMap::new(),
+            map: DashMap::with_hasher(RandomState::new()),
         }
     }
 

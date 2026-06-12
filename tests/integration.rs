@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use bytes::Bytes;
-use futures::{future::join_all, SinkExt, StreamExt};
+use futures::{SinkExt, StreamExt, future::join_all};
 use tokio::sync::Semaphore;
 use tokio::{
     net::{TcpListener, TcpStream},

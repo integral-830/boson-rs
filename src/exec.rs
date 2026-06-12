@@ -4,6 +4,9 @@ use crate::cmd::Command;
 use crate::codec::RespValue;
 use crate::store::Store;
 
+const PONG: &[u8] = b"PONG";
+const OK: &[u8] = b"OK";
+
 #[tracing::instrument(
     skip(store),
     fields(command = ?cmd)
@@ -12,12 +15,12 @@ pub fn execute(store: &Store, cmd: Command) -> RespValue {
     match cmd {
         Command::Ping(msg) => match msg {
             Some(msg) => RespValue::SimpleString(msg),
-            None => RespValue::SimpleString(Bytes::from_static(b"PONG")),
+            None => RespValue::SimpleString(Bytes::from_static(PONG)),
         },
         Command::Echo(msg) => RespValue::BulkString(msg),
         Command::Set { key, value, ex } => {
             store.set(key, value, ex);
-            RespValue::SimpleString(Bytes::from_static(b"OK"))
+            RespValue::SimpleString(Bytes::from_static(OK))
         }
         Command::Get(key) => match store.get(&key) {
             Some(value) => RespValue::BulkString(value),

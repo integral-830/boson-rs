@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+ahash = "0.8.12"
 bytes = "1.11.1"
 dashmap = "6.2.1"
 futures = "0.3.32"
