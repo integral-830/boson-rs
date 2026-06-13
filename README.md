@@ -12,8 +12,8 @@ boson-rs is a Redis-compatible server written in Rust and powered by Tokio's asy
 
 | Document                           | Contents                                                                                                   |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [architecture.md](ARCHITECTURE.md) | System diagrams, component reference, protocol support matrix, command reference, graceful shutdown design |
-| [benchmarks.md](BENCHMARKS.md)     | Full benchmark environment, non-pipelined & pipelined results, Redis comparison, client scaling analysis   |
+| [architecture.md](architecture.md) | System diagrams, component reference, protocol support matrix, command reference, graceful shutdown design |
+| [benchmarks.md](benchmarks.md)     | Full benchmark environment, non-pipelined & pipelined results, Redis comparison, client scaling analysis   |
 
 ## Table of Contents
 
@@ -118,7 +118,7 @@ All benchmarks were run with `redis-benchmark` on localhost against a release bu
 
 ---
 
-> For the complete benchmark suite including detailed comparisons against Redis, see [benchmarks.md](BENCHMARKS.md).
+> For the complete benchmark suite including detailed comparisons against Redis, see [benchmarks.md](benchmarks.md).
 
 ---
 
