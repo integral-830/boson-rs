@@ -180,19 +180,19 @@ boson-rs currently implements the RESP2 (Redis Serialization Protocol v2) wire p
 
 ### Implemented
 
-| Command        | Syntax                   | Description                                            | Status         |
-| -------------- | ------------------------ | ------------------------------------------------------ | -------------- |
-| `PING`         | `PING [message]`         | Returns `PONG` or echoes the provided message          | ✅ Implemented |
-| `ECHO`         | `ECHO message`           | Returns the provided message unchanged                 | ✅ Implemented |
-| `SET`          | `SET key value`          | Stores a key-value pair                                | ✅ Implemented |
-| `GET`          | `GET key`                | Retrieves the value associated with a key              | ✅ Implemented |
-| `DEL`          | `DEL key [key ...]`      | Deletes one or more keys                               | ✅ Implemented |
-| `EXISTS`       | `EXISTS key [key ...]`   | Checks whether one or more keys exist                  | ✅ Implemented |
-| `INCR`         | `INCR key`               | Atomically increments an integer value                 | ✅ Implemented |
-| `EXPIRE`       | `EXPIRE key seconds`     | Sets a time-to-live (TTL) on a key                     | ✅ Implemented |
-| `TTL`          | `TTL key`                | Returns the remaining time-to-live of a key            | ✅ Implemented |
-| `CONFIG GET`   | `CONFIG GET parameter`   | Returns selected server configuration values           | ✅ Implemented |
-| `COMMAND DOCS` | `COMMAND DOCS [command]` | Displays built-in documentation for supported commands | ✅ Implemented |
+| Command        | Syntax                   | Description                                   | Status         |
+| -------------- | ------------------------ | --------------------------------------------- | -------------- |
+| `PING`         | `PING [message]`         | Returns `PONG` or echoes the provided message | ✅ Implemented |
+| `ECHO`         | `ECHO message`           | Returns the provided message unchanged        | ✅ Implemented |
+| `SET`          | `SET key value`          | Stores a key-value pair                       | ✅ Implemented |
+| `GET`          | `GET key`                | Retrieves the value associated with a key     | ✅ Implemented |
+| `DEL`          | `DEL key [key ...]`      | Deletes one or more keys                      | ✅ Implemented |
+| `EXISTS`       | `EXISTS key [key ...]`   | Checks whether one or more keys exist         | ✅ Implemented |
+| `INCR`         | `INCR key`               | Atomically increments an integer value        | ✅ Implemented |
+| `EXPIRE`       | `EXPIRE key seconds`     | Sets a time-to-live (TTL) on a key            | ✅ Implemented |
+| `TTL`          | `TTL key`                | Returns the remaining time-to-live of a key   | ✅ Implemented |
+| `CONFIG GET`   | `CONFIG GET parameter`   | Returns empty array for now no impl           | ✅ Implemented |
+| `COMMAND DOCS` | `COMMAND DOCS [command]` | Returns empty array for now no impl           | ✅ Implemented |
 
 ### Planned
 

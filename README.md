@@ -45,7 +45,7 @@ boson-rs is an asynchronous TCP server that speaks the Redis Serialization Proto
 
 - Build a correct, concurrent async server using Tokio
 
-- Apply and measure reliability patterns (connection limiting, shutdown, timeouts)
+- Apply and measure reliability patterns (connection limiting, shutdown)
 
 - Benchmark against Redis and understand where and why gaps exist
 
@@ -77,7 +77,7 @@ boson-rs currently handles `PING`, `ECHO`, `GET`, `SET`, `INCR`, `DEL`, `EXISTS`
 - [x] Async TCP server using Tokio
 - [x] Custom framed codec via `tokio-util::codec`
 - [x] Command dispatch: `PING`, `ECHO`, `GET`, `SET`, `INCR`, `DEL`,`EXISTS`
-- [x] Docs (`CONFIG GET`, `COMMAND DOCS`)
+- [x] Docs (`CONFIG GET`, `COMMAND DOCS`)(Currently it returns empty array. No doc implementaions.)
 - [x] Key expiry (`TTL`, `EXPIRE`)
 - [x] Pipelining support (tested at depth 16 and 64)
 - [x] Connection limiting via `tokio::sync::Semaphore` (max 1,000 clients)
