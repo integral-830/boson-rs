@@ -232,7 +232,7 @@ mod tests {
 
     use bytes::Bytes;
 
-    use crate::cmd::{parse_command, Command, CommandError};
+    use crate::cmd::{Command, CommandError, parse_command};
     use crate::codec::RespValue;
 
     fn bulk(s: &str) -> RespValue {
