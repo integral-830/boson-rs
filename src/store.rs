@@ -49,6 +49,12 @@ impl Store {
         self.map.insert(key, Entry { value, expires_at });
     }
 
+    pub fn mset(&self, pairs: Vec<(Bytes, Bytes)>) {
+        for (k, v) in pairs {
+            self.set(k, v, None);
+        }
+    }
+
     pub fn del(&self, keys: &[Bytes]) -> i64 {
         keys.iter()
             .filter(|key| self.map.remove(*key).is_some())
@@ -311,5 +317,42 @@ mod tests {
         for handle in handles {
             handle.await.unwrap();
         }
+    }
+
+    #[test]
+    fn mset_single_pair() {
+        let store = Store::new();
+
+        store.mset(vec![(Bytes::from("key1"), Bytes::from("value1"))]);
+
+        assert_eq!(store.get(&Bytes::from("key1")), Some(Bytes::from("value1")));
+    }
+
+    #[test]
+    fn mset_multiple_pairs() {
+        let store = Store::new();
+
+        store.mset(vec![
+            (Bytes::from("key1"), Bytes::from("value1")),
+            (Bytes::from("key2"), Bytes::from("value2")),
+            (Bytes::from("key3"), Bytes::from("value3")),
+        ]);
+
+        assert_eq!(store.get(&Bytes::from("key1")), Some(Bytes::from("value1")));
+
+        assert_eq!(store.get(&Bytes::from("key2")), Some(Bytes::from("value2")));
+
+        assert_eq!(store.get(&Bytes::from("key3")), Some(Bytes::from("value3")));
+    }
+
+    #[test]
+    fn mset_overwrites_existing_values() {
+        let store = Store::new();
+
+        store.set(Bytes::from("key1"), Bytes::from("old"), None);
+
+        store.mset(vec![(Bytes::from("key1"), Bytes::from("new"))]);
+
+        assert_eq!(store.get(&Bytes::from("key1")), Some(Bytes::from("new")));
     }
 }

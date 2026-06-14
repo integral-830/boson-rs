@@ -46,6 +46,10 @@ pub fn execute(store: &Store, cmd: Command) -> RespValue {
                 .collect();
             RespValue::Array(resp_values)
         }
+        Command::MSet(pairs) => {
+            store.mset(pairs);
+            RespValue::SimpleString(Bytes::from_static(OK))
+        }
     }
 }
 
@@ -84,5 +88,24 @@ mod tests {
                 RespValue::Null,
             ])
         );
+    }
+
+    #[test]
+    fn test_execute_mset() {
+        let store = Store::new();
+
+        let resp = execute(
+            &store,
+            Command::MSet(vec![
+                (Bytes::from("key1"), Bytes::from("value1")),
+                (Bytes::from("key2"), Bytes::from("value2")),
+            ]),
+        );
+
+        assert_eq!(resp, RespValue::SimpleString(Bytes::from_static(b"OK")));
+
+        assert_eq!(store.get(&Bytes::from("key1")), Some(Bytes::from("value1")));
+
+        assert_eq!(store.get(&Bytes::from("key2")), Some(Bytes::from("value2")));
     }
 }

@@ -12,6 +12,7 @@ pub enum Command {
         value: Bytes,
         ex: Option<u64>,
     },
+    MSet(Vec<(Bytes, Bytes)>),
     Get(Bytes),
     MGet(Vec<Bytes>),
     Del(Vec<Bytes>),
@@ -149,6 +150,24 @@ pub fn parse_command(args: Vec<RespValue>) -> Result<Command, CommandError> {
                 }
             }
             Ok(Command::Set { key, value, ex })
+        }
+        b"MSET" => {
+            let args = bytes_iter.map(check_bulk).collect::<Result<Vec<_>, _>>()?;
+            if args.is_empty() || args.len() % 2 != 0 {
+                return Err(CommandError::WrongArity {
+                    cmd: "MSET",
+                    got: args.len() + 1,
+                    expected: "MSET key value [key value ...]",
+                });
+            }
+            let mut pairs = Vec::with_capacity(args.len() / 2);
+            let mut iter = args.into_iter();
+
+            while let Some(key) = iter.next() {
+                let value = iter.next().unwrap();
+                pairs.push((key, value));
+            }
+            Ok(Command::MSet(pairs))
         }
         b"DEL" => {
             let keys = bytes_iter.map(check_bulk).collect::<Result<Vec<_>, _>>()?;

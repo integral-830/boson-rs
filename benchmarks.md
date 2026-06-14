@@ -196,7 +196,7 @@ redis-benchmark \
 
 ---
 
-## Scaling Efficiency
+### Scaling Efficiency
 
 Compared against baseline GET throughput.
 
@@ -210,7 +210,7 @@ Compared against baseline GET throughput.
 
 ---
 
-## Throughput Growth
+### Throughput Growth
 
 ```text
 Keys/sec
@@ -231,7 +231,7 @@ Keys/sec
 
 ---
 
-## Command Throughput
+### Command Throughput
 
 ```text
 Commands/sec
@@ -251,8 +251,6 @@ Commands/sec
 ```
 
 ---
-
-## Key Observations
 
 ### MGET(2)
 
@@ -308,7 +306,7 @@ which is:
 
 ---
 
-## Latency Analysis
+### Latency Analysis
 
 | Operation |      p50 |
 | --------- | -------: |
@@ -326,7 +324,7 @@ Interestingly:
 
 ---
 
-## Conclusion
+### Conclusion
 
 Boson's MGET implementation scales very well.
 
@@ -342,7 +340,35 @@ The results indicate that the bottleneck is no longer DashMap lookups. The domin
 
 Source data: :contentReference[oaicite:0]{index=0}
 
-### Redis Comparison Summary
+### MSET Benchmark Results
+
+| Operation | Commands/sec | KV Pairs/Command | Effective Writes/sec | p50 Latency |
+| --------- | -----------: | ---------------: | -------------------: | ----------: |
+| SET       |    1,418,440 |                1 |            1,418,440 |     ~3.9 ms |
+| MSET(4)   |      969,932 |                4 |            3,879,728 |     ~5.9 ms |
+| MSET(8)   |      805,802 |                8 |            6,446,416 |     ~7.0 ms |
+| MSET(16)  |      560,538 |               16 |            8,968,608 |    ~10.3 ms |
+
+### MSET Scaling Efficiency
+
+| Operation | Effective Writes/sec | Speedup vs SET |
+| --------- | -------------------: | -------------: |
+| SET       |            1,418,440 |          1.00× |
+| MSET(4)   |            3,879,728 |          2.74× |
+| MSET(8)   |            6,446,416 |          4.54× |
+| MSET(16)  |            8,968,608 |          6.32× |
+
+### Best Observed Result
+
+| Metric                                 |             Result |
+| -------------------------------------- | -----------------: |
+| Peak MSET Command Throughput           |      969,932 req/s |
+| Peak Effective Write Throughput        | 8,968,608 writes/s |
+| Best Batch Size (effective throughput) |           MSET(16) |
+| Clients                                |                100 |
+| Pipeline Depth                         |                 64 |
+
+## Redis Comparison Summary
 
 | Operation                      | Redis (req/s) | Boson (req/s) |     Ratio |
 | ------------------------------ | ------------: | ------------: | --------: |
