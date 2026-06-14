@@ -40,6 +40,10 @@ impl Store {
         }
     }
 
+    pub fn mget(&self, keys: &[Bytes]) -> Vec<Option<Bytes>> {
+        keys.iter().map(|k| self.get(k)).collect()
+    }
+
     pub fn set(&self, key: Bytes, value: Bytes, ex: Option<u64>) {
         let expires_at = ex.map(|secs| Instant::now() + Duration::from_secs(secs));
         self.map.insert(key, Entry { value, expires_at });
@@ -149,6 +153,37 @@ mod tests {
         store.set(Bytes::from("foo"), Bytes::from("bar"), None);
 
         assert_eq!(store.get(&Bytes::from("foo")), Some(Bytes::from("bar")));
+    }
+
+    #[test]
+    fn mget_test() {
+        let store = Store::new();
+
+        store.set(Bytes::from("key1"), Bytes::from("value1"), None);
+
+        store.set(Bytes::from("key2"), Bytes::from("value2"), None);
+
+        let result = store.mget(&[Bytes::from("key1"), Bytes::from("key2")]);
+
+        assert_eq!(
+            result,
+            vec![Some(Bytes::from("value1")), Some(Bytes::from("value2")),]
+        );
+    }
+
+    #[test]
+    fn mget_missing_keys() {
+        let store = Store::new();
+
+        store.set(Bytes::from("key1"), Bytes::from("value1"), None);
+
+        let result = store.mget(&[
+            Bytes::from("key1"),
+            Bytes::from("missing"),
+            Bytes::from("another_missing"),
+        ]);
+
+        assert_eq!(result, vec![Some(Bytes::from("value1")), None, None,]);
     }
 
     #[test]

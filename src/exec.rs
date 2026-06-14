@@ -35,44 +35,54 @@ pub fn execute(store: &Store, cmd: Command) -> RespValue {
         Command::Expire(key, secs) => RespValue::Integer(store.expire(&key, secs)),
         Command::Ttl(key) => RespValue::Integer(store.ttl(&key)),
         Command::CommandDocs | Command::ConfigGet => RespValue::Array(vec![]),
+        Command::MGet(keys) => {
+            let resp_values = store
+                .mget(&keys)
+                .into_iter()
+                .map(|val| match val {
+                    Some(value) => RespValue::BulkString(value),
+                    None => RespValue::Null,
+                })
+                .collect();
+            RespValue::Array(resp_values)
+        }
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use bytes::Bytes;
-//
-//     use crate::cmd::Command;
-//     use crate::codec::RespValue;
-//     use crate::exec::execute;
-//
-//     #[test]
-//     fn execute_ping() {
-//         assert_eq!(
-//             execute(Command::Ping(None)),
-//             RespValue::SimpleString(Bytes::from_static(b"PONG"))
-//         );
-//     }
-//
-//     #[test]
-//     fn execute_set() {
-//         assert_eq!(
-//             execute(Command::Set {
-//                 key: Bytes::from("k"),
-//                 value: Bytes::from("v"),
-//                 ex: None,
-//             }),
-//             RespValue::SimpleString(Bytes::from_static(b"OK"))
-//         );
-//     }
-//
-//     #[test]
-//     fn execute_get() {
-//         assert_eq!(execute(Command::Get(Bytes::from("k"))), RespValue::Null);
-//     }
-//
-//     #[test]
-//     fn execute_command_docs() {
-//         assert_eq!(execute(Command::CommandDocs), RespValue::Array(vec![]));
-//     }
-// }
+#[cfg(test)]
+mod tests {
+
+    use bytes::Bytes;
+
+    use crate::cmd::Command;
+    use crate::codec::RespValue;
+    use crate::exec::execute;
+    use crate::store::Store;
+
+    #[test]
+    fn execute_mget() {
+        let store = Store::new();
+
+        store.set(Bytes::from("key1"), Bytes::from("value1"), None);
+
+        store.set(Bytes::from("key2"), Bytes::from("value2"), None);
+
+        let resp = execute(
+            &store,
+            Command::MGet(vec![
+                Bytes::from("key1"),
+                Bytes::from("key2"),
+                Bytes::from("missing"),
+            ]),
+        );
+
+        assert_eq!(
+            resp,
+            RespValue::Array(vec![
+                RespValue::BulkString(Bytes::from("value1")),
+                RespValue::BulkString(Bytes::from("value2")),
+                RespValue::Null,
+            ])
+        );
+    }
+}

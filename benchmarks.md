@@ -182,6 +182,166 @@ redis-benchmark \
 
 > These results were collected on an Apple M2 system (16 GB RAM) running release builds with a pipeline depth of 64 and 100 concurrent clients.
 
+## MGET Performance Analysis (Pipeline = 64, Clients = 100)
+
+### Raw Results
+
+| Operation | Commands/sec | Keys per Command | Effective Keys/sec | p50 Latency |
+| --------- | -----------: | ---------------: | -----------------: | ----------: |
+| GET       |    1,522,070 |                1 |          1,522,070 |    3.679 ms |
+| MGET(2)   |    1,488,095 |                2 |          2,976,190 |    2.655 ms |
+| MGET(4)   |    1,300,390 |                4 |          5,201,560 |    2.391 ms |
+| MGET(8)   |      962,464 |                8 |          7,699,712 |    3.143 ms |
+| MGET(16)  |      619,195 |               16 |          9,907,120 |    4.599 ms |
+
+---
+
+## Scaling Efficiency
+
+Compared against baseline GET throughput.
+
+| Operation | Commands/sec Ratio | Keys/sec Ratio |
+| --------- | -----------------: | -------------: |
+| GET       |              1.00× |          1.00× |
+| MGET(2)   |              0.98× |          1.96× |
+| MGET(4)   |              0.85× |          3.42× |
+| MGET(8)   |              0.63× |          5.06× |
+| MGET(16)  |              0.41× |          6.51× |
+
+---
+
+## Throughput Growth
+
+```text
+Keys/sec
+
+10M │                                           ● MGET(16)
+ 9M │
+ 8M │                                ● MGET(8)
+ 7M │
+ 6M │
+ 5M │                     ● MGET(4)
+ 4M │
+ 3M │           ● MGET(2)
+ 2M │
+ 1M │ ● GET
+    └───────────────────────────────────────────────
+      GET      MGET2     MGET4     MGET8    MGET16
+```
+
+---
+
+## Command Throughput
+
+```text
+Commands/sec
+
+1.6M │ ● GET
+1.5M │ ● MGET(2)
+1.4M │
+1.3M │ ● MGET(4)
+1.2M │
+1.1M │
+1.0M │
+0.9M │ ● MGET(8)
+0.8M │
+0.7M │
+0.6M │ ● MGET(16)
+      └────────────────────────────────────────────
+```
+
+---
+
+## Key Observations
+
+### MGET(2)
+
+- Command throughput drops only ~2%
+- Effective lookup throughput nearly doubles
+
+```text
+GET      : 1.52M lookups/sec
+MGET(2)  : 2.98M lookups/sec
+```
+
+---
+
+### MGET(4)
+
+- Only ~15% command throughput reduction
+- More than 3.4× lookup throughput increase
+
+```text
+5.20M key lookups/sec
+```
+
+This is likely the best efficiency point.
+
+---
+
+### MGET(8)
+
+- Network overhead is being amortized effectively
+- Nearly 7.7M key lookups/sec
+
+```text
+~5× GET throughput
+```
+
+---
+
+### MGET(16)
+
+- Response serialization begins to dominate
+- Command throughput falls substantially
+- However key throughput still reaches almost
+
+```text
+9.9M key lookups/sec
+```
+
+which is:
+
+```text
+6.5× baseline GET throughput
+```
+
+---
+
+## Latency Analysis
+
+| Operation |      p50 |
+| --------- | -------: |
+| GET       | 3.679 ms |
+| MGET(2)   | 2.655 ms |
+| MGET(4)   | 2.391 ms |
+| MGET(8)   | 3.143 ms |
+| MGET(16)  | 4.599 ms |
+
+Interestingly:
+
+- MGET(2) and MGET(4) are faster than GET at p50.
+- This is expected because a single command retrieves multiple keys while paying only one protocol/network overhead.
+- MGET(16) shows the beginning of response construction and serialization costs.
+
+---
+
+## Conclusion
+
+Boson's MGET implementation scales very well.
+
+| Metric                     |          Result |
+| -------------------------- | --------------: |
+| Peak GET Throughput        |     1.52M req/s |
+| Peak MGET(16) Throughput   |      619k req/s |
+| Peak Effective Lookup Rate |    9.91M keys/s |
+| Best Efficiency Point      | MGET(4)–MGET(8) |
+| Maximum Lookup Scaling     |    6.51× vs GET |
+
+The results indicate that the bottleneck is no longer DashMap lookups. The dominant cost at larger batch sizes is likely RESP array construction, response encoding, and network transmission rather than key retrieval itself.
+
+Source data: :contentReference[oaicite:0]{index=0}
+
 ### Redis Comparison Summary
 
 | Operation                      | Redis (req/s) | Boson (req/s) |     Ratio |

@@ -13,6 +13,7 @@ pub enum Command {
         ex: Option<u64>,
     },
     Get(Bytes),
+    MGet(Vec<Bytes>),
     Del(Vec<Bytes>),
     Exists(Vec<Bytes>),
     Incr(Bytes),
@@ -100,6 +101,17 @@ pub fn parse_command(args: Vec<RespValue>) -> Result<Command, CommandError> {
             Ok(Command::Get(check_bulk(
                 remaining_bytes.into_iter().next().unwrap(),
             )?))
+        }
+        b"MGET" => {
+            let keys = bytes_iter.map(check_bulk).collect::<Result<Vec<_>, _>>()?;
+            if keys.is_empty() {
+                return Err(CommandError::WrongArity {
+                    cmd: "MGET",
+                    got: 1,
+                    expected: "MGET key [key ...]",
+                });
+            }
+            Ok(Command::MGet(keys))
         }
         b"SET" => {
             let remaining_bytes: Vec<_> = bytes_iter.collect();
@@ -220,7 +232,7 @@ mod tests {
 
     use bytes::Bytes;
 
-    use crate::cmd::{Command, CommandError, parse_command};
+    use crate::cmd::{parse_command, Command, CommandError};
     use crate::codec::RespValue;
 
     fn bulk(s: &str) -> RespValue {

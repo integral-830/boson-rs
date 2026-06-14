@@ -27,7 +27,7 @@ pub async fn handle(
         tokio::select! {
             biased;
 
-            _ = shutdown.cancelled() => {
+            () = shutdown.cancelled() => {
                 tracing::info!("shutdown");
                 break;
             }
