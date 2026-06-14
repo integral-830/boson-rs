@@ -76,7 +76,7 @@ boson-rs currently handles `PING`, `ECHO`, `GET`, `SET`, `INCR`, `DEL`, `EXISTS`
 - [x] RESP2 protocol — full parser and encoder
 - [x] Async TCP server using Tokio
 - [x] Custom framed codec via `tokio-util::codec`
-- [x] Command dispatch: `PING`, `ECHO`, `GET`, `SET`, `INCR`, `DEL`,`EXISTS`
+- [x] Command dispatch: `PING`, `ECHO`, `GET`, `SET`, `INCR`, `DEL`,`EXISTS`,`MGET`,`MSET`
 - [x] Docs (`CONFIG GET`, `COMMAND DOCS`)(Currently it returns empty array. No doc implementaions.)
 - [x] Key expiry (`TTL`, `EXPIRE`)
 - [x] Pipelining support (tested at depth 16 and 64)
